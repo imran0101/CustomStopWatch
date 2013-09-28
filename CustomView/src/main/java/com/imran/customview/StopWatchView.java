@@ -8,7 +8,6 @@ import android.graphics.Point;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.View;
-import android.view.animation.AnimationUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +46,12 @@ public class StopWatchView extends View {
         init();
     }
 
+    /**
+     * Initialize method. Get circle dimens from dimens.xml
+     * Inner and outer circle basing on which the points are drawn.
+     *
+     * Initialize all lists and resources.
+     */
     void init() {
         if (!isInEditMode()) {
             innerCircleRadius = getResources().getDimension(R.dimen.inner_circle_radius);
@@ -63,14 +68,36 @@ public class StopWatchView extends View {
         }
     }
 
+    /**
+     * Set initial x and y to start rotate and transform.
+     * Initially x = x
+     * y = y1 - innerCircleRadius
+     * @param x
+     * @param y
+     */
     private void setmInPoint(int x, int y) {
         mInPoint = new Point(x, y);
     }
 
+    /**
+     * Set inital x and y on ext Circle
+     * x = x
+     * y = y1 - outerCircleRadius
+     * @param x
+     * @param y
+     */
     private void setmExtPoint(int x, int y) {
         mExtPoint = new Point(x, y);
     }
 
+    /**
+     * Method to rotate the with the circle center and get the points on the circle
+     * Once for inner circle and once for outer circle
+     * @param point
+     * @param centerX
+     * @param centerY
+     * @return
+     */
     private Point rotate(Point point, float centerX, float centerY) {
         mRotateTransform.setRotate(6, centerX, centerY);
         float[] pts = new float[2];
@@ -82,6 +109,9 @@ public class StopWatchView extends View {
         return new Point((int) pts[0], (int) pts[1]);
     }
 
+    /**
+     * Setup the points on circle and shape drawables for once on onDraw method.
+     */
     private void setup() {
 
         setmInPoint((int) (cX - innerCircleRadius), (int) (cY - innerCircleRadius));
@@ -96,6 +126,14 @@ public class StopWatchView extends View {
         }
     }
 
+    /**
+     * Get the center of the circle. Center is the same for inner and outer circle. (Concentric.)
+     * @param changed
+     * @param left
+     * @param top
+     * @param right
+     * @param bottom
+     */
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
@@ -104,6 +142,9 @@ public class StopWatchView extends View {
         cY = bottom / 2;
     }
 
+    /**
+     * working on it.
+     */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public void startAnimation() {
 
@@ -112,6 +153,10 @@ public class StopWatchView extends View {
         }
     }
 
+    /**
+     * Draw the list of custom shape drawables.
+     * @param canvas
+     */
     @Override
     protected void onDraw(Canvas canvas) {
 

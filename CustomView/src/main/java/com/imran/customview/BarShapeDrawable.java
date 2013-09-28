@@ -60,6 +60,9 @@ public class BarShapeDrawable extends ShapeDrawable {
         canvas.restoreToCount(sc);
     }
 
+    /**
+     * Custom shape to draw on canvas
+     */
     private class BarShape extends Shape {
 
         Path path;

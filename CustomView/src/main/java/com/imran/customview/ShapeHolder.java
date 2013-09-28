@@ -4,21 +4,26 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.ShapeDrawable;
-import android.view.animation.Animation;
-import android.view.animation.TranslateAnimation;
 
 /**
  * Created by imranmohammed on 28/09/13.
  */
-public class ShapeHolder{
-    private float x =0, y= 0;
-
+public class ShapeHolder {
     Point inPoint;
     Point extPoint;
-
+    boolean animate = false;
+    private float x = 0, y = 0;
     private ShapeDrawable sDrawable;
     private AnimationDrawable aDrawable;
     private Paint paint;
+
+    ShapeHolder(ShapeDrawable sDrawable, Point inPoint, Point extPoint) {
+        this.sDrawable = sDrawable;
+        this.inPoint = inPoint;
+        this.extPoint = extPoint;
+        setX(inPoint.x);
+        setY(inPoint.y);
+    }
 
     public boolean isAnimate() {
         return animate;
@@ -26,16 +31,6 @@ public class ShapeHolder{
 
     public void setAnimate(boolean animate) {
         this.animate = animate;
-    }
-
-    boolean animate = false;
-
-    ShapeHolder(ShapeDrawable sDrawable, Point inPoint, Point extPoint){
-        this.sDrawable = sDrawable;
-        this.inPoint = inPoint;
-        this.extPoint = extPoint;
-        setX(inPoint.x);
-        setY(inPoint.y);
     }
 
     public float getX() {
@@ -86,11 +81,11 @@ public class ShapeHolder{
         this.paint = paint;
     }
 
-    public float getWidth(){
+    public float getWidth() {
         return sDrawable.getShape().getWidth();
     }
 
-    public float getHeight(){
+    public float getHeight() {
         return sDrawable.getShape().getHeight();
     }
 }
