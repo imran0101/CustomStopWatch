@@ -26,16 +26,18 @@ gradle*
 # generated files
 bin/
 gen/
-*/tmp/
+/tmp/
 out/
-CustomView/build
 
 # Local configuration file (sdk path, etc)
 local.properties
 
 #output
-
 out*
 
 # Android Lint Tool configuration file
 lint.xml
+
+# Eclipse project files
+.classpath
+.project
