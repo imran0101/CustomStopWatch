@@ -18,16 +18,31 @@ import java.util.List;
 public class StopWatchView extends View {
 
 
+    // inner circle radius and circumference.
     float innerCircleRadius, innerCircleCircumference;
+    // outer circle radius and circumference
     float outerCircleRadius, outerCircleCircumference;
+
+    // Center cX and cY
     float cX = 0;
     float cY = 0;
-    float cInnerOffset = 0;
-    float cOuterOffset = 0;
+
+    //To set the drawables once.
     boolean once = true;
+
+    //matrix used to transform and get the points on circle.
     Matrix mRotateTransform;
+    //Point on inner circle
     Point mInPoint;
+    //Point on ext circle
     Point mExtPoint;
+
+    /**
+     * List of custom shape drawables.
+     * 2 points are stored.
+     *
+     * Animation to be done on these drawables.
+     */
     List<BarShapeDrawable> mBarShapeDrawables;
 
 
@@ -58,9 +73,6 @@ public class StopWatchView extends View {
             innerCircleCircumference = (float) Math.PI * innerCircleRadius * 2;
             outerCircleRadius = getResources().getDimension(R.dimen.outer_circle_radius);
             outerCircleCircumference = (float) Math.PI * outerCircleRadius * 2;
-
-            cInnerOffset = innerCircleCircumference / 60;
-            cOuterOffset = outerCircleCircumference / 60;
 
             mRotateTransform = new Matrix();
 
