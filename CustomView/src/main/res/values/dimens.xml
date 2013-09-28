@@ -1,0 +1,9 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="bar_width">80px</dimen>
+    <dimen name="bar_height">40px</dimen>
+    <dimen name="inner_circle_radius">200px</dimen>
+    <dimen name="outer_circle_radius">250px</dimen>
+</resources>
