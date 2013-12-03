@@ -1,36 +1,36 @@
 package com.imran.customview;
 
-import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
-import android.graphics.Point;
-import android.graphics.RectF;
+import android.graphics.Paint;
+import android.graphics.PointF;
+import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.os.Build;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.view.View;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
-import android.view.animation.ScaleAnimation;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by imranmohammed on 28/09/13.
  */
-public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateListener, Animation.AnimationListener {
+public class StopWatchView extends View implements Animation.AnimationListener {
 
-
+    private final static int DURATION_REFRESH_OFFSET = 100;
     // inner circle radius and circumference.
     float innerCircleRadius, innerCircleCircumference;
     // outer circle radius and circumference
     float outerCircleRadius, outerCircleCircumference;
     // middle circle radius and circumference
     float middleCircleRadius, middleCircleCircumference;
-    ScaleAnimation mScaleAnimation;
+    float scalePointRadius;
     // Center cX and cY
     float cX = 0;
     float cY = 0;
@@ -39,14 +39,12 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
     //matrix used to transform and get the points on circle.
     Matrix mRotateTransform;
     //Point on inner circle
-    Point mInPoint;
+    PointF mInPoint;
     //Point on ext circle
-    Point mExtPoint;
+    PointF mExtPoint;
     //Point on the middle circle
-    Point mMidPoint;
-
-    RectF rectF;
-
+    PointF mMidPoint;
+    PointF mScalePoint;
     /**
      * List of custom shape drawables.
      * 2 points are stored.
@@ -54,14 +52,30 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
      * Animation to be done on these drawables.
      */
     List<AnimateDrawable> mAnimateDrawables;
-    Animation mAnimation;
-    boolean isAnimating = false;
     CustomDrawable custom;
     ProxyDrawable proxy;
     AnimateDrawable a;
-    private int mCurrentPosition = 0;
+    Matrix mMatrix = new Matrix();
+    boolean mPaused = false, mStarted = false;
+    long mStartTime;
+    long mElapsedTime;
+    String mMinutes = "00", mSeconds = "00", mMilliSeconds = ".00";
+    long mMinutesL, mSecondsL, mMilliSecondsL;
+    String mTime = "00:00";
+    Handler mHandler = new Handler();
+    Paint mTextPaint;
+    ArrayDeque<Integer> mAnimatePositions;
+    Rect rect = new Rect();
 
-    private ObjectAnimator mObjectAnimator;
+    private int mCurrentPosition = 0;
+    private Runnable mStartTimer = new Runnable() {
+        @Override
+        public void run() {
+            mElapsedTime = System.currentTimeMillis() - mStartTime;
+            startTicking(mElapsedTime);
+            mHandler.postDelayed(this, DURATION_REFRESH_OFFSET);
+        }
+    };
 
     public StopWatchView(Context context) {
         super(context);
@@ -87,6 +101,7 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     void init() {
         if (!isInEditMode()) {
+
             innerCircleRadius = getResources().getDimension(R.dimen.inner_circle_radius);
             innerCircleCircumference = (float) Math.PI * innerCircleRadius * 2;
             middleCircleRadius = getResources().getDimension(R.dimen.middle_circle_radius);
@@ -94,38 +109,19 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
             outerCircleRadius = getResources().getDimension(R.dimen.outer_circle_radius);
             outerCircleCircumference = (float) Math.PI * outerCircleRadius * 2;
 
+            scalePointRadius = getResources().getDimension(R.dimen.scale_point_radius);
+
             mRotateTransform = new Matrix();
 
-            Point leftPoint = new Point(100, 10);
-            Point midPoint = new Point(125, 10);
-            Point rightPoint = new Point(150, 10);
+            mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+            mTextPaint.setColor(getResources().getColor(android.R.color.holo_blue_dark));
+            mTextPaint.setStrokeWidth(1);
+            mTextPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+            mTextPaint.setTextAlign(Paint.Align.CENTER);
+            mTextPaint.setTypeface(Typeface.createFromAsset(getContext().getAssets(), "fonts/Roboto-Thin.ttf"));
 
-            custom = new CustomDrawable(leftPoint, midPoint, rightPoint);
-
-            Animation an =  new ScaleAnimation(0.9f,
-                    1.0f,
-                    1.0f,
-                    1.0f,
-                    midPoint.x,
-                    midPoint.y);
-            an.setDuration(2000);
-            an.setRepeatCount(-1);
-
-            proxy = new ProxyDrawable(custom);
-            proxy.setX(leftPoint.x);
-            proxy.setY(leftPoint.y);
-            mObjectAnimator = ObjectAnimator.ofFloat(proxy, "x", midPoint.x, rightPoint.x);
-
-            mObjectAnimator.addUpdateListener(this);
-            mObjectAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
-            mObjectAnimator.setRepeatCount(20);
-            mObjectAnimator.setRepeatMode(ValueAnimator.REVERSE);
-            mObjectAnimator.setDuration(400);
-            mObjectAnimator.start();
-
-            a = new AnimateDrawable(custom, an);
-            an.start();
             mAnimateDrawables = new ArrayList<AnimateDrawable>();
+            mAnimatePositions = new ArrayDeque<Integer>(2);
         }
     }
 
@@ -137,8 +133,8 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
      * @param x
      * @param y
      */
-    private void setmInPoint(int x, int y) {
-        mInPoint = new Point(x, y);
+    private void setmInPoint(float x, float y) {
+        this.mInPoint = new PointF(x, y);
     }
 
     /**
@@ -149,12 +145,16 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
      * @param x
      * @param y
      */
-    private void setmExtPoint(int x, int y) {
-        mExtPoint = new Point(x, y);
+    private void setmExtPoint(float x, float y) {
+        this.mExtPoint = new PointF(x, y);
     }
 
-    public void setmMidPoint(int x, int y) {
-        this.mMidPoint = new Point(x, y);
+    public void setmMidPoint(float x, float y) {
+        this.mMidPoint = new PointF(x, y);
+    }
+
+    public void setScalePoint(float x, float y) {
+        this.mScalePoint = new PointF(x, y);
     }
 
     /**
@@ -166,7 +166,7 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
      * @param centerY
      * @return
      */
-    private Point rotate(Point point, float centerX, float centerY) {
+    private PointF rotate(PointF point, float centerX, float centerY) {
         mRotateTransform.setRotate(6, centerX, centerY);
         float[] pts = new float[2];
 
@@ -174,27 +174,7 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
         pts[1] = point.y;
 
         mRotateTransform.mapPoints(pts);
-        return new Point((int) pts[0], (int) pts[1]);
-    }
-
-    private RectF rotateRect(float centerX, float centerY){
-        mRotateTransform.setRotate(6, centerX, centerY);
-        RectF r = new RectF(0,0, 5,10);
-       /* float[] pts = new float[2];
-
-        pts[0] = point.x;
-        pts[1] = point.y;
-
-        mRotateTransform.mapPoints(pts);
-*/
-        mRotateTransform.mapRect(r, rectF);
-        return rectF;
-
-    }
-
-    private void setUpRect(Point leftTop, Point bottomRight){
-
-        rectF = new RectF(leftTop.x + 3f, leftTop.y + 3f, bottomRight.x + 3f, bottomRight.y + 3f);
+        return new PointF(pts[0], pts[1]);
     }
 
     /**
@@ -202,41 +182,29 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
      */
     private void setup() {
 
-        setmInPoint((int) (cX), (int) (cY - innerCircleRadius));
-        setmExtPoint((int) (cX), (int) (cY - outerCircleRadius));
-        setmMidPoint((int) (cX), (int) (cY - middleCircleRadius));
-
-        setUpRect(mInPoint, mExtPoint);
+        setmInPoint(cX, (cY - innerCircleRadius));
+        setmExtPoint(cX, (cY - outerCircleRadius));
+        setmMidPoint(cX, (cY - middleCircleRadius));
+        setScalePoint(cX, cY - scalePointRadius);
 
         for (int i = 0; i < 60; i++) {
 
-            CustomDrawable c = new CustomDrawable(mInPoint, mMidPoint, mExtPoint);
-            //CustomDrawable c = new CustomDrawable(rectF);
+            CustomDrawable c;
+            if (i == 0 || i == 15 || i == 30 || i == 45) {
+                c = new CustomDrawable(true, mInPoint, mMidPoint, mExtPoint, mScalePoint);
+            } else {
+                c = new CustomDrawable(false, mInPoint, mMidPoint, mExtPoint, mScalePoint);
+            }
 
-            mScaleAnimation = new ScaleAnimation(0.9f,
-                    1.9f,
-                    0.9f,
-                    1.9f,
-                    mMidPoint.x,
-                    mMidPoint.y);
-
-            mScaleAnimation.setDuration(400);
-            mScaleAnimation.setRepeatMode(Animation.REVERSE);
-            mScaleAnimation.setRepeatCount(1);
-            mScaleAnimation.setFillEnabled(true);
-            mScaleAnimation.setFillAfter(false);
-            mScaleAnimation.setStartOffset(300);
-
-            mScaleAnimation.setAnimationListener(this);
-            AnimateDrawable ad = new AnimateDrawable(c, mScaleAnimation);
+            c.setColor(getResources().getColor(android.R.color.holo_blue_bright));
+            AnimateDrawable ad = new AnimateDrawable(c);
+            ad.getAnimation().setAnimationListener(this);
             mAnimateDrawables.add(ad);
 
             mInPoint = rotate(mInPoint, cX, cY);
             mExtPoint = rotate(mExtPoint, cX, cY);
             mMidPoint = rotate(mMidPoint, cX, cY);
-            //rectF.offsetTo(mInPoint.x, mInPoint.y);
-            //setUpRect(mInPoint, mExtPoint);
-            //rectF = rotateRect(cX, cY);
+            mScalePoint = rotate(mScalePoint, cX, cY);
         }
     }
 
@@ -253,20 +221,61 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
 
-        cX = right / 2;
-        cY = bottom / 2;
+        cX = getMeasuredWidth() / 2;
+        cY = getMeasuredHeight() / 2;
+
+        if (once && !isInEditMode()) {
+            setup();
+            once = false;
+        }
+
     }
 
     /**
      * working on it.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public void startAnimation() {
-        isAnimating = true;
-        mAnimateDrawables.get(mCurrentPosition).startAnimation();
+    public void start() {
+        if (mPaused) {
+            mStartTime = System.currentTimeMillis() - mElapsedTime;
+            mPaused = false;
+        } else {
+            mStartTime = System.currentTimeMillis();
+        }
+        //mCurrentPosition = 0;
+        //mAnimatePositions.add(mCurrentPosition);
+
+
+        mStarted = true;
+        mHandler.removeCallbacks(mStartTimer);
+        mHandler.postDelayed(mStartTimer, 0);
     }
 
-    Matrix mMatrix = new Matrix();
+    public void pause() {
+        mPaused = true;
+        mStarted = false;
+        mHandler.removeCallbacks(mStartTimer);
+    }
+
+    public void reset() {
+        mPaused = false;
+        mStarted = false;
+        mHandler.removeCallbacks(mStartTimer);
+        mTime = "00:00";
+        mMilliSeconds = ".00";
+        if (mAnimatePositions.size() > 0) {
+            for (Integer i : mAnimatePositions) {
+                mAnimateDrawables.get(i).reset(this);
+            }
+        }
+        mAnimatePositions = new ArrayDeque<Integer>(2);
+        invalidate();
+    }
+
+    public boolean isRunning() {
+        return mStarted;
+    }
+
     /**
      * Draw the list of custom shape drawables.
      *
@@ -275,24 +284,33 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
     @Override
     protected void onDraw(Canvas canvas) {
 
-        canvas.concat(mMatrix);
-        if (once && !isInEditMode()) {
-            setup();
-            once = false;
-        }
+        if (!isInEditMode()) {
+            for (int i = 0; i < mAnimateDrawables.size(); i++) {
+                AnimateDrawable aa = mAnimateDrawables.get(i);
 
-        for (int i = 0; i < mAnimateDrawables.size(); i++) {
-            if (i == mCurrentPosition) {
-                mAnimateDrawables.get(i).draw(canvas);
-            } else {
-                mAnimateDrawables.get(i).getProxy().draw(canvas);
+                if (mAnimatePositions.contains(i)) {
+                    if (aa.hasEnded()) {
+                        aa.reset(this);
+                    }
+                    aa.draw(canvas);
+                } else {
+                    aa.getProxy().draw(canvas);
+                }
             }
+
+            mTextPaint.setTextSize(140);
+
+            float tX = cX - mTextPaint.descent();
+            float tY = cY - ((mTextPaint.descent() + mTextPaint.ascent()) / 2);
+
+            mTextPaint.getTextBounds(mTime, 0, 3, rect);
+
+            canvas.drawText(mTime, tX, tY, mTextPaint);
+            mTextPaint.setTextSize(40);
+            canvas.drawText(mMilliSeconds, rect.right + tX + 20, rect.bottom + tY, mTextPaint);
+
+            invalidate();
         }
-
-        canvas.translate(proxy.getX(), proxy.getY());
-        proxy.draw(canvas);
-
-        invalidate();
     }
 
     @Override
@@ -300,9 +318,38 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
         setMeasuredDimension(widthMeasureSpec, heightMeasureSpec);
     }
 
-    @Override
-    public void onAnimationUpdate(ValueAnimator animation) {
-        invalidate();
+    private void startTicking(float time) {
+        mMilliSecondsL = (long) time;
+        mSecondsL = (long) ((time / 1000) % 60);
+        mMinutesL = (long) (((time / 1000) / 60) % 60);
+
+        mMilliSeconds = (mMilliSecondsL == 0) ? "00" : String.valueOf(mMilliSecondsL);
+        mSeconds = (mSecondsL == 0) ? "00" : String.valueOf(mSecondsL);
+        mMinutes = String.valueOf(mMinutesL);
+
+        if (mMilliSeconds.length() <= 2)
+            mMilliSeconds = "0" + mMilliSeconds;
+        else if (mMilliSeconds.length() <= 1)
+            mMilliSeconds = "00";
+
+        if (mMilliSeconds.length() >= 3)
+            mMilliSeconds = mMilliSeconds.substring(mMilliSeconds.length() -
+                    3, mMilliSeconds.length() - 1);
+
+        if (mSecondsL > 0 && mSecondsL < 10)
+            mSeconds = "0" + mSeconds;
+
+        if (mMinutesL >= 0 && mMinutesL < 10)
+            mMinutes = "0" + mMinutes;
+
+        mTime = mMinutes + ":" + mSeconds; // + mMilliSeconds
+        mMilliSeconds = "." + mMilliSeconds;
+
+        int index = (int) mSecondsL;
+        mCurrentPosition = index;
+
+        if (!mAnimatePositions.contains(index))
+            mAnimatePositions.add(index);
     }
 
     @Override
@@ -312,13 +359,8 @@ public class StopWatchView extends View implements ValueAnimator.AnimatorUpdateL
 
     @Override
     public void onAnimationEnd(Animation animation) {
-        if (mCurrentPosition < 60 && mCurrentPosition >= 0)
-            mCurrentPosition++;
-
-        if (mCurrentPosition == 60)
-            mCurrentPosition = 0;
-        if (mCurrentPosition >= 0 && mCurrentPosition < 60)
-            mAnimateDrawables.get(mCurrentPosition).startAnimation();
+        if (!mPaused)
+            mAnimatePositions.poll();
     }
 
     @Override

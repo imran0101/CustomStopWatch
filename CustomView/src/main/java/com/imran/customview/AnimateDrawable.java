@@ -22,6 +22,11 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Transformation;
 
+
+/**
+ * Source : Android API demos.
+ * Hacked.
+ */
 public class AnimateDrawable extends ProxyDrawable {
 
     private Animation mAnimation;
@@ -29,6 +34,12 @@ public class AnimateDrawable extends ProxyDrawable {
 
     public AnimateDrawable(Drawable target) {
         super(target);
+
+        if (target instanceof CustomDrawable) {
+            ((CustomDrawable) target).setAnimation();
+            setAnimation(((CustomDrawable) target).getAnimation());
+        }
+
     }
 
     public AnimateDrawable(Drawable target, Animation animation) {
@@ -52,11 +63,12 @@ public class AnimateDrawable extends ProxyDrawable {
         return mAnimation == null || mAnimation.hasEnded();
     }
 
-    /**
-     * Start animation
-     */
-    public void startAnimation(){
-        mAnimation.startNow();
+    public void reset(Animation.AnimationListener listener) {
+        if (getProxy() instanceof CustomDrawable) {
+            ((CustomDrawable) getProxy()).setAnimation();
+            mAnimation = ((CustomDrawable) getProxy()).getAnimation();
+            mAnimation.setAnimationListener(listener);
+        }
     }
 
     @Override
@@ -67,8 +79,8 @@ public class AnimateDrawable extends ProxyDrawable {
             Animation anim = mAnimation;
             if (anim != null) {
                 anim.getTransformation(
-                                    AnimationUtils.currentAnimationTimeMillis(),
-                                    mTransformation);
+                        AnimationUtils.currentAnimationTimeMillis(),
+                        mTransformation);
                 canvas.concat(mTransformation.getMatrix());
             }
             dr.draw(canvas);

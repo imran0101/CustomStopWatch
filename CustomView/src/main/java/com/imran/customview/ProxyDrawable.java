@@ -21,6 +21,9 @@ import android.graphics.ColorFilter;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
 
+/**
+ * Source : Android API Demo sample project.
+ */
 public class ProxyDrawable extends Drawable {
 
     private Drawable mProxy;

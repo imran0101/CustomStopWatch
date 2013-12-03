@@ -1,4 +1,9 @@
 <resources>
     <!-- Customize dimensions originally defined in res/values/dimens.xml (such as
          screen margins) for sw600dp devices (e.g. 7" tablets) here. -->
+
+
+    <dimen name="scale_point_radius">286dp</dimen>
+    <dimen name="middle_circle_radius">296dp</dimen>
+    <dimen name="outer_circle_radius">306dp</dimen>
 </resources>
