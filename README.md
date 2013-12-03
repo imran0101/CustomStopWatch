@@ -6,4 +6,4 @@ CustomView
 
 Application demoed and previewd during Google Developer Conference Hyderabad.
 
-![Image](../snapshots/1_home.png)
+![Image](../snapshots/1_home.png?raw=true)
