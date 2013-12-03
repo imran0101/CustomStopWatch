@@ -1,9 +1,9 @@
 CustomView
-==========
+----------
 
-Custom View for Stop Watch for GDG
-=======
-CustomTimer
-===========
+- Sample Custom View
+- Custom Stop Watch View (Similar to timely stopwatch)
 
-Custom timer view. Similar to Timely timer.
+Application demoed and previewd during Google Developer Conference Hyderabad.
+
+![Image](../snapshots/1_home.png)
